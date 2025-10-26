@@ -1,0 +1,50 @@
+{
+    "C_Cpp.intelliSenseEngine": "default",
+    "idf.espIdfPathWin": "C:\\Users\\veres\\esp\\v5.4\\esp-idf",
+    "idf.pythonInstallPath": "C:\\Users\\veres\\.espressif\\tools\\idf-python\\3.11.2\\python.exe",
+    "idf.openOcdConfigs": [
+        "interface/ftdi/esp32_devkitj_v1.cfg",
+        "target/esp32.cfg"
+    ],
+    "idf.portWin": "COM6",
+    "idf.toolsPathWin": "C:\\Users\\veres\\.espressif",
+    "files.associations": {
+        ".fantomasignore": "ignore",
+        "array": "cpp",
+        "deque": "cpp",
+        "list": "cpp",
+        "string": "cpp",
+        "unordered_map": "cpp",
+        "vector": "cpp",
+        "string_view": "cpp",
+        "format": "cpp",
+        "initializer_list": "cpp",
+        "span": "cpp",
+        "text_encoding": "cpp",
+        "regex": "cpp",
+        "gpio.h": "c",
+        "freertos.h": "c",
+        "stdio.h": "c",
+        "esp_http_client.h": "c",
+        "esp_mac.h": "c",
+        "ens160.h": "c",
+        "queue.h": "c",
+        "spi_master.h": "c",
+        "cstdint": "c",
+        "stdint.h": "c",
+        "i2c_master.h": "c",
+        "esp_sntp.h": "c",
+        "cjson.h": "c",
+        "sdkconfig.h": "c",
+        "err.h": "c",
+        "esp_system.h": "c",
+        "bmp280.h": "c",
+        "random": "c",
+        "esp_event.h": "c",
+        "hall_sensor.h": "c"
+    },
+    "idf.flashType": "UART",
+    "idf.customExtraVars": {
+        "IDF_TARGET": "esp32"
+    }
+}
