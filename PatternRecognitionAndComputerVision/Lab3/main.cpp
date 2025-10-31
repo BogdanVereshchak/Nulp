@@ -3,16 +3,16 @@
 #include <vector>
 #include <string>
 
+
 using namespace cv;
 using namespace std;
 
-const double PIXELS_TO_METERS = 0.03; // (Метрів / 1 піксель) 
-
+const double PIXELS_TO_METERS = 0.07; // (Метрів / 1 піксель) 
 // Мінімальна площа контуру (в пікселях), щоб вважатися об'єктом
 const double CONTOUR_MIN_AREA = 1000.0; 
-
 // Площа (в пікселях), вище якої об'єкт вважається вантажівкою
 const double TRUCK_AREA_THRESHOLD = 8000.0; 
+
 
 struct movingObj
 {
@@ -57,13 +57,14 @@ double filterAndPredict(KalmanFilter& kf, double measurement) {
 }
 
 
-// --- ФУНКЦІЇ ОБРОБКИ ЗОБРАЖЕННЯ ---
-
 Mat cleanMask(Mat mask) {
     Mat cleanedMask;
-    morphologyEx(mask, cleanedMask, MORPH_OPEN, getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
-    morphologyEx(cleanedMask, cleanedMask, MORPH_CLOSE, getStructuringElement(MORPH_ELLIPSE, Size(7, 7)));
-    dilate(cleanedMask, cleanedMask, getStructuringElement(MORPH_ELLIPSE, Size(7, 7)), Point(-1, -1), 1);
+    // morphologyEx(mask, cleanedMask, MORPH_OPEN, getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
+    // morphologyEx(cleanedMask, cleanedMask, MORPH_CLOSE, getStructuringElement(MORPH_ELLIPSE, Size(7, 7)));
+    // dilate(cleanedMask, cleanedMask, getStructuringElement(MORPH_ELLIPSE, Size(7, 7)), Point(-1, -1), 1);
+
+    medianBlur(mask, cleanedMask, 3);
+    dilate(cleanedMask, cleanedMask, getStructuringElement(MORPH_RECT, Size(3,3)), Point(-1,-1), 1);
     return cleanedMask;
 }
 
@@ -90,9 +91,6 @@ vector<Point2f> getContourCenters(const vector<vector<Point>>& contours) {
     return centers;
 }
 
-
-// --- ФУНКЦІЇ ВІДСТЕЖЕННЯ---
-
 int findClosest(const Point2f& pt, const vector<Point2f>& centers, double maxDist = 50.0) {
     int idx = -1;
     double minDist = maxDist;
@@ -106,9 +104,6 @@ int findClosest(const Point2f& pt, const vector<Point2f>& centers, double maxDis
     return idx;
 }
 
-/**
- * @brief Ініціалізує об'єкти на основі перших контурів 
- */
 vector<movingObj> initObjects(const vector<vector<Point>>& contours) {
     vector<movingObj> objs;
     vector<Point2f> centers = getContourCenters(contours);
@@ -122,7 +117,7 @@ vector<movingObj> initObjects(const vector<vector<Point>>& contours) {
         obj.speed = 0;
         obj.averageSpeed = 0;
         obj.trajectory.push_back(centers[i]);
-        obj.color = Scalar(rand() % 256, rand() % 256, rand() % 256);
+        obj.color = Scalar(theRNG().uniform(0,256), theRNG().uniform(0,256), theRNG().uniform(0,256));
         obj.area = contourArea(contours[i]);
         obj.type = (obj.area > TRUCK_AREA_THRESHOLD) ? "Truck" : "Car";
         obj.framesNotSeen = 0;
@@ -131,9 +126,6 @@ vector<movingObj> initObjects(const vector<vector<Point>>& contours) {
     return objs;
 }
 
-/**
- * @brief Оновлює стан об'єктів новими контурами
- */
 void updateObjects(vector<movingObj>& objs, const vector<vector<Point>>& contours) {
     vector<Point2f> centers = getContourCenters(contours);
     vector<bool> matched(centers.size(), false);
@@ -151,22 +143,19 @@ void updateObjects(vector<movingObj>& objs, const vector<vector<Point>>& contour
             obj.speed = norm(obj.center - obj.prevCenter);
             obj.averageSpeed = (obj.averageSpeed * (obj.trajectory.size() - 2) + obj.speed) / (obj.trajectory.size() - 1);
             
-            // Оновлюємо тип та площу
             obj.area = contourArea(contours[idx]);
             obj.type = (obj.area > TRUCK_AREA_THRESHOLD) ? "Truck" : "Car";
             
             matched[idx] = true;
-            obj.framesNotSeen = 0; // Об'єкт видно
+            obj.framesNotSeen = 0;
         }
     }
 
-    // Видаляємо об'єкти, яких не бачили > 10 кадрів
     objs.erase(remove_if(objs.begin(), objs.end(), [](const movingObj& obj) {
         return obj.framesNotSeen > 10;
     }), objs.end());
 
 
-    // Додаємо нові об'єкти
     for (int j = 0; j < centers.size(); ++j) {
         if (!matched[j]) {
             movingObj newObj;
@@ -176,7 +165,7 @@ void updateObjects(vector<movingObj>& objs, const vector<vector<Point>>& contour
             newObj.speed = 0;
             newObj.averageSpeed = 0;
             newObj.trajectory.push_back(centers[j]);
-            newObj.color = Scalar(rand() % 256, rand() % 256, rand() % 256);
+            newObj.color = Scalar(theRNG().uniform(0,256), theRNG().uniform(0,256), theRNG().uniform(0,256));
             newObj.area = contourArea(contours[j]);
             newObj.type = (newObj.area > TRUCK_AREA_THRESHOLD) ? "Truck" : "Car";
             newObj.framesNotSeen = 0;
@@ -185,9 +174,6 @@ void updateObjects(vector<movingObj>& objs, const vector<vector<Point>>& contour
     }
 }
 
-/**
- * @brief Малює траєкторії та інформацію про об'єкти
- */
 void drawTracking(Mat& frame, const vector<movingObj>& objs, double fps, double px_to_m_ratio) {
     for (auto& obj : objs) {
         // Малюємо траєкторію
@@ -197,15 +183,12 @@ void drawTracking(Mat& frame, const vector<movingObj>& objs, double fps, double 
             }
         }
         
-        // --- Обрахунок швидкості ---
-        double speed_mps = obj.speed * px_to_m_ratio * fps; // (пікс/кадр) * (м/пікс) * (кадр/сек) = м/сек
-        double speed_kph = speed_mps * 3.6;                 // (м/сек) * (3600 сек/год) / (1000 м/км) = км/год
+        double speed_mps = obj.speed * px_to_m_ratio * fps; 
+        double speed_kph = speed_mps * 3.6; 
 
-        // --- Формування тексту ---
         string label = "ID:" + to_string(obj.id) + " " + obj.type;
         string speed_label = to_string(cvRound(speed_kph)) + " km/h";
 
-        // Малюємо мітку
         Point labelPos = obj.center + Point2f(10, -10);
         Point speedPos = obj.center + Point2f(10, 10);
         putText(frame, label, labelPos, FONT_HERSHEY_SIMPLEX, 0.6, obj.color, 2);
@@ -218,8 +201,6 @@ void drawTracking(Mat& frame, const vector<movingObj>& objs, double fps, double 
     }
 }
 
-// --- ГОЛОВНА ФУНКЦІЯ ---
-
 int main() {
     VideoCapture cap("Traffic.mp4");
     if (!cap.isOpened()) {
@@ -227,112 +208,135 @@ int main() {
         return -1;
     }
 
-    // Отримуємо FPS та розмір кадру
     double fps = cap.get(CAP_PROP_FPS);
     int frame_w = (int)cap.get(CAP_PROP_FRAME_WIDTH);
     int frame_h = (int)cap.get(CAP_PROP_FRAME_HEIGHT);
     Size frameSize(frame_w, frame_h);
     
-    // Розмір сітки 2x2
     Size gridSize(frame_w * 2, frame_h * 2);
     Mat canvas = Mat::zeros(gridSize, CV_8UC3);
 
-    // Визначаємо регіони (ROIs) для копіювання
     Rect roi_TL(0, 0, frame_w, frame_h); // Top-Left
     Rect roi_TR(frame_w, 0, frame_w, frame_h); // Top-Right
     Rect roi_BL(0, frame_h, frame_w, frame_h); // Bottom-Left
     Rect roi_BR(frame_w, frame_h, frame_w, frame_h); // Bottom-Right
 
-    // Вікно для сітки
     namedWindow("Traffic Dashboard", WINDOW_NORMAL);
 
 
     // --- Ініціалізація стабілізатора ---
-    KalmanFilter kf_x, kf_y, kf_a;
-    setupKalmanFilters(kf_x, kf_y, kf_a, 0.01, 0.1);
+    // KalmanFilter kf_x, kf_y, kf_a;
+    // setupKalmanFilters(kf_x, kf_y, kf_a, 0.01, 0.3);
+    double smooth_dx = 0.0, smooth_dy = 0.0;
+    const double ALPHA = 0.85;
     Mat prev_frame, prev_grey;
     vector<Point2f> prev_pts;
     cap.read(prev_frame);
     if (prev_frame.empty()) return -1;
     cvtColor(prev_frame, prev_grey, COLOR_BGR2GRAY);
 
-    // --- Ініціалізація віднімання фону ---
     Ptr<BackgroundSubtractor> bg = createBackgroundSubtractorMOG2(500, 16, true); // true = detectShadows
 
-    // --- Ініціалізація відстеження ---
+    // cv::cuda::GpuMat gpu_frame, gpu_fgmask;
+    // cv::Ptr<cv::cuda::BackgroundSubtractorMOG2> bg = cv::cuda::createBackgroundSubtractorMOG2(500, 16, true);
+
     vector<movingObj> objects;
     bool initialized = false;
-
+    TickMeter tm;
     Mat frame;
+    cv::setUseOptimized(true);
+    cv::setNumThreads(8);
     while (cap.read(frame)) {
         if (frame.empty()) break;
-
+        tm.start();
         // --- 1. Стабілізація ---
         Mat cur_frame = frame.clone();
         Mat cur_grey;
         cvtColor(cur_frame, cur_grey, COLOR_BGR2GRAY);
-        vector<Point2f> cur_pts;
 
-        if (prev_pts.size() < 50) {
-            goodFeaturesToTrack(prev_grey, prev_pts, 200, 0.01, 10);
+        Mat fgMaskPrev;
+        bg->apply(prev_frame, fgMaskPrev); 
+        Mat staticMaskPrev;
+        threshold(fgMaskPrev, staticMaskPrev, 200, 255, THRESH_BINARY_INV);
+
+        if (prev_pts.size() < 80) {
+            vector<Point2f> candidates;
+            goodFeaturesToTrack(prev_grey, candidates, 100, 0.01, 8, staticMaskPrev);
+            prev_pts = candidates;
         }
 
+        vector<Point2f> cur_pts;
         vector<uchar> status;
         vector<float> err;
-        calcOpticalFlowPyrLK(prev_grey, cur_grey, prev_pts, cur_pts, status, err);
 
-        vector<Point2f> prev_pts_tracked, cur_pts_tracked;
+        if (!prev_pts.empty()) {
+            calcOpticalFlowPyrLK(prev_grey, cur_grey, prev_pts, cur_pts, status, err, Size(25,25), 3);
+        }
+
+        vector<double> dxs, dys;
         for (size_t i = 0; i < status.size(); ++i) {
             if (status[i]) {
-                prev_pts_tracked.push_back(prev_pts[i]);
-                cur_pts_tracked.push_back(cur_pts[i]);
+                double dx = cur_pts[i].x - prev_pts[i].x;
+                double dy = cur_pts[i].y - prev_pts[i].y;
+                dxs.push_back(dx);
+                dys.push_back(dy);
             }
         }
 
-        Mat T;
-        if (prev_pts_tracked.size() > 5) {
-             T = estimateAffinePartial2D(prev_pts_tracked, cur_pts_tracked);
-        }
-       
-        double dx = 0, dy = 0, da = 0;
-        if (!T.empty()) {
-            dx = T.at<double>(0, 2);
-            dy = T.at<double>(1, 2);
-            da = atan2(T.at<double>(1, 0), T.at<double>(0, 0));
+        double dx = 0.0, dy = 0.0;
+        bool haveGoodEstimate = false;
+
+        if (dxs.size() >= 6) {
+            auto median = [](vector<double>& v) -> double {
+                size_t n = v.size();
+                nth_element(v.begin(), v.begin() + n/2, v.end());
+                double med = v[n/2];
+                if (n % 2 == 0) {
+                    double a = *max_element(v.begin(), v.begin() + n/2);
+                    med = (med + a) / 2.0;
+                }
+                return med;
+            };
+            dx = median(dxs);
+            dy = median(dys);
+            haveGoodEstimate = true;
+        } else {
+            Mat f1, f2;
+            prev_grey.convertTo(f1, CV_32F);
+            cur_grey.convertTo(f2, CV_32F);
+            Point2d p = phaseCorrelate(f1, f2);
+            dx = p.x;
+            dy = p.y;
+            if (std::hypot(dx, dy) < 1000.0) haveGoodEstimate = true;
         }
 
-        double smooth_dx = filterAndPredict(kf_x, dx);
-        double smooth_dy = filterAndPredict(kf_y, dy);
-        double smooth_da = filterAndPredict(kf_a, da);
-       
-        Mat transformation_matrix = Mat::zeros(2, 3, CV_64F);
-        transformation_matrix.at<double>(0, 0) = cos(smooth_da);
-        transformation_matrix.at<double>(0, 1) = -sin(smooth_da);
-        transformation_matrix.at<double>(1, 0) = sin(smooth_da);
-        transformation_matrix.at<double>(1, 1) = cos(smooth_da);
-        transformation_matrix.at<double>(0, 2) = smooth_dx;
-        transformation_matrix.at<double>(1, 2) = smooth_dy;
+        // Згладжування (EMA)
+        smooth_dx = ALPHA * smooth_dx + (1.0 - ALPHA) * dx;
+        smooth_dy = ALPHA * smooth_dy + (1.0 - ALPHA) * dy;
+
+        // Побудова матриці трансформації для чистого зміщення
+        Mat transformation_matrix = Mat::eye(2, 3, CV_64F);
+        transformation_matrix.at<double>(0, 2) = -smooth_dx; 
+        transformation_matrix.at<double>(1, 2) = -smooth_dy;
 
         Mat stabilized_frame;
-        warpAffine(cur_frame, stabilized_frame, transformation_matrix, cur_frame.size());
+        warpAffine(cur_frame, stabilized_frame, transformation_matrix, cur_frame.size(), INTER_LINEAR, BORDER_REPLICATE);
 
-        // --- 2. (ПОВЕРНУЛИ) Відображення "Original vs Stabilized" ---
-        Mat comparison_canvas = Mat::zeros(cur_frame.rows, cur_frame.cols * 2 + 10, cur_frame.type());
-        cur_frame.copyTo(comparison_canvas(Rect(0, 0, cur_frame.cols, cur_frame.rows)));
-        stabilized_frame.copyTo(comparison_canvas(Rect(cur_frame.cols + 10, 0, cur_frame.cols, cur_frame.rows)));
+        // --- 2.2 Відображення "Original vs Stabilized" ---
+        // Mat comparison_canvas = Mat::zeros(cur_frame.rows, cur_frame.cols * 2 + 10, cur_frame.type());
+        // cur_frame.copyTo(comparison_canvas(Rect(0, 0, cur_frame.cols, cur_frame.rows)));
+        // stabilized_frame.copyTo(comparison_canvas(Rect(cur_frame.cols + 10, 0, cur_frame.cols, cur_frame.rows)));
         
-        // Додаємо підписи
-        putText(comparison_canvas, "Original (Shaky)", Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 0, 255), 2);
-        putText(comparison_canvas, "Stabilized", Point(cur_frame.cols + 10 + 10, 30), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 255, 0), 2);
+        // putText(comparison_canvas, "Original (Shaky)", Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 0, 255), 2);
+        // putText(comparison_canvas, "Stabilized", Point(cur_frame.cols + 10 + 10, 30), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(0, 255, 0), 2);
         
-        // Зменшуємо розмір, якщо завеликий для екрану
-        if (comparison_canvas.cols > 1920) {
-            resize(comparison_canvas, comparison_canvas, Size(comparison_canvas.cols / 2, comparison_canvas.rows / 2));
-        }
-        imshow("Original vs Stabilized", comparison_canvas);
+        // if (comparison_canvas.cols > 1920) {
+        //     resize(comparison_canvas, comparison_canvas, Size(comparison_canvas.cols / 2, comparison_canvas.rows / 2));
+        // }
+        // imshow("Original vs Stabilized", comparison_canvas);
 
         // --- 2. Віднімання фону та тіней ---
-        Mat fgMask, backgroundModel, shadowMask, foregroundOnlyMask;
+        Mat fgMask,backgroundModel, shadowMask, foregroundOnlyMask;
         bg->apply(stabilized_frame, fgMask);
         bg->getBackgroundImage(backgroundModel);
         
@@ -352,46 +356,53 @@ int main() {
         }
 
         // --- 4. Малювання результатів ---
-        // Малюємо трекінг ПРЯМО на стабілізований кадр
         drawTracking(stabilized_frame, objects, fps, PIXELS_TO_METERS);
 
         // --- 5. Збірка сітки (Grid) ---
+                Mat bgModelVis, shadowVis, maskVis;
         
-        // Створюємо версії для відображення
-        Mat bgModelVis, shadowVis, maskVis;
-        
-        // Модель фону (вже CV_8UC3)
         if (!backgroundModel.empty())
             resize(backgroundModel, bgModelVis, frameSize);
         else
             bgModelVis = Mat::zeros(frameSize, CV_8UC3); // Заглушка, якщо модель ще не готова
 
-        // Маска тіней (CV_8UC1 -> CV_8UC3)
         cvtColor(shadowMask, shadowVis, COLOR_GRAY2BGR);
         resize(shadowVis, shadowVis, frameSize);
         
-        // Очищена маска (CV_8UC1 -> CV_8UC3)
         cvtColor(mask, maskVis, COLOR_GRAY2BGR);
         resize(maskVis, maskVis, frameSize);
 
-        // Копіюємо всі кадри в сітку
-        stabilized_frame.copyTo(canvas(roi_TL)); // Головне вікно
-        bgModelVis.copyTo(canvas(roi_TR));       // Модель фону
-        maskVis.copyTo(canvas(roi_BL));          // Маска (без тіней)
-        shadowVis.copyTo(canvas(roi_BR));        // Тільки тіні
+        stabilized_frame.copyTo(canvas(roi_TL));
+        bgModelVis.copyTo(canvas(roi_TR));
+        maskVis.copyTo(canvas(roi_BL));
+        shadowVis.copyTo(canvas(roi_BR));
 
-        // Додаємо підписи до сітки
         putText(canvas, "Tracking (Stabilized)", roi_TL.tl() + Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255, 255, 0), 2);
         putText(canvas, "Background Model", roi_TR.tl() + Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255, 255, 0), 2);
         putText(canvas, "Cleaned Mask (FG Only)", roi_BL.tl() + Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255, 255, 0), 2);
         putText(canvas, "Shadows Only", roi_BR.tl() + Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255, 255, 0), 2);
 
         // --- 6. Відображення ---
-        imshow("Traffic Dashboard", canvas);
         
-        // --- 7. Оновлення стану ---
+        tm.stop();
+        double fps = 1.0 / tm.getTimeSec(); 
+        tm.reset();
+
+        putText(canvas, format("FPS: %.1f", fps), Point(20, 60), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255, 255, 0), 2);
+        putText(canvas, format("Frame time: %.1f ms", 1000.0 / fps), Point(20, 90), FONT_HERSHEY_SIMPLEX, 0.6, Scalar(255, 255, 255), 1);
+
+        Mat display; 
+        resize(canvas, display, Size(), 0.5, 0.5);
+        imshow("Traffic Dashboard", display);
+        //imshow("Traffic Dashboard", canvas);
+
+        prev_frame = cur_frame.clone();
         prev_grey = cur_grey.clone();
-        prev_pts = cur_pts_tracked;
+        vector<Point2f> newPrevPts;
+        for (size_t i = 0; i < status.size(); ++i) {
+            if (status[i]) newPrevPts.push_back(cur_pts[i]);
+        }
+        prev_pts = newPrevPts;
         
         if (waitKey(1) == 27) break; // Вихід по ESC
     }
