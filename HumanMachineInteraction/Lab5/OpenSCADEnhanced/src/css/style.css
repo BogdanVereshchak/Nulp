@@ -1,0 +1,151 @@
+/* CSS змінні для тем */
+        :root {
+            --bg-dark: #1e1e2e;
+            --bg-panel: #252537;
+            --bg-sidebar: #181825;
+            --accent: #bd93f9;
+            --text-main: #f8f8f2;
+            --text-dim: #6272a4;
+            --border: #44475a;
+            --success: #50fa7b;
+            --error: #ff5555;
+            --scroll-thumb: #44475a;
+        }
+
+        /* LIGHT THEME */
+        [data-theme="light"] {
+            --bg-dark: #ffffff;
+            --bg-panel: #f3f4f6;
+            --bg-sidebar: #e5e7eb;
+            --accent: #2563eb;
+            --text-main: #1f2937;
+            --text-dim: #6b7280;
+            --border: #d1d5db;
+            --success: #059669;
+            --error: #dc2626;
+            --scroll-thumb: #9ca3af;
+        }
+
+        /* MONOKAI THEME */
+        [data-theme="monokai"] {
+            --bg-dark: #272822;
+            --bg-panel: #1e1f1c;
+            --bg-sidebar: #171814;
+            --accent: #a6e22e;
+            --text-main: #f8f8f2;
+            --text-dim: #75715e;
+            --border: #49483e;
+            --success: #a6e22e;
+            --error: #f92672;
+            --scroll-thumb: #49483e;
+        }
+
+        /* OCEANIC THEME */
+        [data-theme="oceanic"] {
+            --bg-dark: #0f111a;
+            --bg-panel: #1a1c25;
+            --bg-sidebar: #090b10;
+            --accent: #80cbc4;
+            --text-main: #eeffff;
+            --text-dim: #546e7a;
+            --border: #263238;
+            --success: #c3e88d;
+            --error: #ff5370;
+            --scroll-thumb: #37474f;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-dark); color: var(--text-main); height: 100vh; overflow: hidden; display: flex; transition: background 0.3s; }
+
+        /* --- SIDEBAR --- */
+        .sidebar { width: 50px; background: var(--bg-sidebar); display: flex; flex-direction: column; align-items: center; padding: 10px 0; border-right: 1px solid var(--border); z-index: 20; transition: background 0.3s; }
+        .icon-btn { color: var(--text-dim); font-size: 20px; margin-bottom: 20px; cursor: pointer; transition: 0.2s; position: relative; width: 100%; text-align: center; padding: 10px 0; }
+        .icon-btn:hover, .icon-btn.active { color: var(--accent); background: rgba(128,128,128,0.1); border-left: 3px solid var(--accent); }
+        .spacer { flex: 1; }
+
+        /* --- SIDE PANELS --- */
+        .side-panel { width: 250px; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; transition: width 0.3s ease, padding 0.3s; overflow: hidden; }
+        .side-panel.collapsed { width: 0; border: none; }
+        .panel-header { padding: 10px; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); height: 40px; }
+        
+        /* Explorer Items */
+        .file-list { flex: 1; overflow-y: auto; }
+        .file-item { padding: 8px 15px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 10px; color: var(--text-main); border-left: 2px solid transparent; user-select: none; }
+        .file-item:hover { background: var(--border); }
+        .file-item.active { background: rgba(128,128,128,0.2); border-left: 2px solid var(--accent); }
+        .file-icon { width: 15px; text-align: center; }
+
+        /* Explorer Menu (Dropdown) */
+        .dropdown-wrapper { position: relative; }
+        .dropdown-menu { 
+            position: absolute; top: 20px; right: 0; width: 150px; 
+            background: var(--bg-sidebar); border: 1px solid var(--border); 
+            border-radius: 4px; display: none; flex-direction: column; 
+            z-index: 50; box-shadow: 0 5px 15px rgba(0,0,0,0.5); 
+        }
+        .dropdown-menu.show { display: flex; }
+        .menu-item { padding: 8px 12px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 8px; color: var(--text-main); text-transform: none; }
+        .menu-item:hover { background: var(--accent); color: var(--bg-dark); }
+
+        /* Search Panel */
+        .search-box { padding: 10px; }
+        .search-input { width: 100%; background: var(--bg-dark); border: 1px solid var(--border); padding: 8px; color: var(--text-main); border-radius: 4px; }
+
+        /* --- MAIN WORKSPACE --- */
+        .workspace { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        
+        /* Tabs */
+        .tabs { height: 35px; background: var(--bg-dark); display: flex; border-bottom: 1px solid var(--border); overflow-x: auto; }
+        .tab { padding: 0 15px; font-size: 13px; display: flex; align-items: center; gap: 8px; background: var(--bg-panel); border-right: 1px solid var(--border); cursor: pointer; user-select: none; min-width: 120px; justify-content: space-between; transition: background 0.2s; }
+        .tab.active { background: var(--bg-dark); border-top: 2px solid var(--accent); color: var(--text-main); }
+        .close-tab { font-size: 10px; opacity: 0.5; border-radius: 50%; padding: 2px 4px; }
+        .close-tab:hover { opacity: 1; background: var(--error); color: white; }
+
+        /* Split View */
+        .split-container { flex: 1; display: flex; overflow: hidden; position: relative; }
+
+        /* Code Editor */
+        .editor-wrapper { flex: 1; display: flex; flex-direction: column; border-right: 1px solid var(--border); position: relative; background: var(--bg-dark); transition: background 0.3s; }
+        .line-numbers { position: absolute; left: 0; top: 0; bottom: 0; width: 40px; background: var(--bg-sidebar); color: var(--text-dim); font-family: 'Fira Code', monospace; font-size: 14px; line-height: 1.5; padding: 10px 5px; text-align: right; border-right: 1px solid var(--border); overflow: hidden; transition: background 0.3s; }
+        textarea.code-input { 
+            position: absolute; left: 40px; top: 0; right: 0; bottom: 0;
+            background: transparent; color: var(--text-main); 
+            border: none; padding: 10px; font-family: 'Fira Code', monospace; 
+            font-size: 14px; line-height: 1.5; resize: none; z-index: 2; 
+            white-space: pre; overflow: auto; tab-size: 4;
+        }
+        textarea.code-input:focus { outline: none; }
+
+        /* 3D Preview */
+        .preview-area { flex: 1; background: #282a36; display: flex; flex-direction: column; position: relative; }
+        /* Force dark bg for preview even in light mode for better 3D visibility, or follow theme? Let's follow variable but keep contrast */
+        .preview-area { background: var(--bg-sidebar); }
+
+        .preview-toolbar { height: 40px; background: var(--bg-panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: flex-end; padding: 0 10px; gap: 10px; }
+        .btn { padding: 5px 12px; border-radius: 4px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-main); font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: 0.2s; }
+        .btn:hover { background: var(--border); }
+        .btn-primary { background: var(--accent); color: var(--bg-dark); border: none; font-weight: bold; }
+        .btn-primary:hover { opacity: 0.8; }
+        
+        #renderCanvas { width: 100%; height: 100%; display: block; }
+
+        /* Console */
+        .console { height: 150px; background: var(--bg-panel); border-top: 1px solid var(--border); display: flex; flex-direction: column; font-family: 'Fira Code', monospace; font-size: 12px; transition: height 0.3s; }
+        .console.collapsed { height: 30px; }
+        .console-header { padding: 5px 10px; background: var(--bg-sidebar); border-bottom: 1px solid var(--border); font-size: 11px; font-weight: bold; display: flex; justify-content: space-between; cursor: pointer; }
+        .console-body { flex: 1; padding: 10px; overflow-y: auto; color: var(--success); }
+        .log-line { margin-bottom: 4px; border-bottom: 1px solid rgba(128,128,128,0.1); padding-bottom: 2px; }
+        .log-line.error { color: var(--error); }
+        .log-line.info { color: #8be9fd; }
+
+        /* Modals */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(2px); }
+        .modal-overlay.open { display: flex; }
+        .modal { background: var(--bg-panel); width: 450px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 20px 50px rgba(0,0,0,0.5); overflow: hidden; }
+        .modal-header { padding: 15px; border-bottom: 1px solid var(--border); font-weight: bold; display: flex; justify-content: space-between; background: var(--bg-sidebar); color: var(--text-main); }
+        .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 15px; color: var(--text-main); }
+        .form-row { display: flex; flex-direction: column; gap: 5px; }
+        .form-row label { font-size: 12px; color: var(--text-dim); }
+        .form-row input, .form-row select { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-main); padding: 8px; border-radius: 4px; }
+        .user-profile { text-align: center; margin-bottom: 10px; }
+        .avatar { width: 80px; height: 80px; background: var(--accent); border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--bg-dark); }

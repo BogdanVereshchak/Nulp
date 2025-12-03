@@ -1,0 +1,12 @@
+appId: com.example.openscadmodernui
+productName: OpenSCAD Modern UI
+directories:
+  output: release
+files:
+  - dist/**
+mac:
+  category: public.app-category.developer-tools
+win:
+  target: nsis
+linux:
+  target: AppImage

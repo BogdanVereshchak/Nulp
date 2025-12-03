@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenSCAD React UI</title>
+    
+    <!-- 1. Libraries (CDNs) -->
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel (JSX Transpiler for browser) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS (Styling Framework) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Three.js (3D Engine) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- FontAwesome (Icons) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Tailwind Config for Custom Colors -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            bg: '#1e1e2e',
+                            panel: '#252537',
+                            sidebar: '#181825',
+                            accent: '#bd93f9'
+                        },
+                        light: {
+                            bg: '#ffffff',
+                            panel: '#f3f4f6',
+                            sidebar: '#e5e7eb',
+                            accent: '#3b82f6'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['"Fira Code"', 'monospace'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        textarea:focus { outline: none; }
+    </style>
+</head>
+<body class="bg-dark-bg text-gray-200 overflow-hidden font-sans transition-colors duration-300">
+    
+    <!-- React Root -->
+    <div id="root"></div>
+
+    <!-- REACT APPLICATION CODE -->
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // --- MOCK FILE SYSTEM ---
+        const initialFiles = {
+            'main.scad': `// React OpenSCAD\ncolor("#bd93f9");\ntranslate([0,0,0]);\ncube([20,20,20]);\n\n// Sphere\ntranslate([30,0,0]);\ncolor("#50fa7b");\nsphere(r=15);`,
+            'lib.scad': `// Library\nmodule gear() {\n  cylinder(h=5, r=20);\n}`,
+            'config.json': `{\n  "version": "2.0",\n  "render_quality": "high"\n}`
+        };
+
+        // --- COMPONENTS ---
+
+        // 1. Sidebar Component
+        const Sidebar = ({ activePanel, setActivePanel, openSettings, openProfile }) => {
+            const icons = [
+                { id: 'explorer', icon: 'fa-copy', title: 'Провідник' },
+                { id: 'search', icon: 'fa-search', title: 'Пошук' },
+                { id: 'git', icon: 'fa-code-branch', title: 'Git' }
+            ];
+
+            return (
+                <div className="w-14 bg-dark-sidebar flex flex-col items-center py-4 border-r border-gray-700 z-20">
+                    {icons.map(item => (
+                        <button 
+                            key={item.id}
+                            onClick={() => setActivePanel(activePanel === item.id ? null : item.id)}
+                            className={`w-full py-3 text-xl transition-colors relative ${activePanel === item.id ? 'text-dark-accent border-l-4 border-dark-accent bg-white/5' : 'text-gray-500 hover:text-white'}`}
+                            title={item.title}
+                        >
+                            <i className={`fas ${item.icon}`}></i>
+                        </button>
+                    ))}
+                    <div className="flex-1"></div>
+                    <button onClick={openSettings} className="w-full py-3 text-xl text-gray-500 hover:text-white"><i className="fas fa-cog"></i></button>
+                    <button onClick={openProfile} className="w-full py-3 text-xl text-gray-500 hover:text-white mb-2"><i className="fas fa-user-circle"></i></button>
+                </div>
+            );
+        };
+
+        // 2. Side Panel (Explorer)
+        const SidePanel = ({ activePanel, files, activeFile, openFile, createNewFile, deleteFile }) => {
+            const [contextMenu, setContextMenu] = useState(null);
+
+            if (!activePanel) return null;
+
+            return (
+                <div className="w-64 bg-dark-panel border-r border-gray-700 flex flex-col transition-all duration-300">
+                    <div className="h-10 px-4 border-b border-gray-700 flex items-center justify-between font-bold text-xs uppercase tracking-wider text-gray-400">
+                        <span>{activePanel === 'explorer' ? 'Провідник' : activePanel.toUpperCase()}</span>
+                        {activePanel === 'explorer' && (
+                            <div className="relative group">
+                                <button className="hover:text-white"><i className="fas fa-ellipsis-h"></i></button>
+                                <div className="absolute right-0 top-full mt-1 w-40 bg-dark-sidebar border border-gray-700 rounded shadow-xl hidden group-hover:block z-50">
+                                    <button onClick={createNewFile} className="w-full text-left px-3 py-2 text-xs hover:bg-dark-accent hover:text-black flex items-center gap-2">
+                                        <i className="fas fa-plus"></i> Новий файл
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto">
+                        {activePanel === 'explorer' && Object.keys(files).map(filename => (
+                            <div 
+                                key={filename}
+                                onClick={() => openFile(filename)}
+                                className={`px-4 py-2 text-sm cursor-pointer flex items-center justify-between group ${activeFile === filename ? 'bg-white/10 border-l-2 border-dark-accent' : 'hover:bg-gray-700'}`}
+                            >
+                                <div className="flex items-center gap-2">
+                                    <i className={`fas ${filename.endsWith('.json') ? 'fa-cog text-yellow-400' : 'fa-cube text-dark-accent'}`}></i>
+                                    {filename}
+                                </div>
+                                <i 
+                                    onClick={(e) => { e.stopPropagation(); deleteFile(filename); }}
+                                    className="fas fa-trash text-red-400 opacity-0 group-hover:opacity-100 hover:text-red-500 text-xs"
+                                ></i>
+                            </div>
+                        ))}
+                        {activePanel === 'search' && <div className="p-4 text-sm text-gray-500">Пошук не реалізовано в демо.</div>}
+                    </div>
+                </div>
+            );
+        };
+
+        // 3. Tab Bar
+        const TabBar = ({ openFiles, activeFile, setActiveFile, closeFile }) => {
+            return (
+                <div className="h-9 bg-dark-bg border-b border-gray-700 flex overflow-x-auto">
+                    {openFiles.map(filename => (
+                        <div 
+                            key={filename}
+                            className={`px-3 min-w-[120px] flex items-center justify-between text-xs cursor-pointer border-r border-gray-700 select-none ${activeFile === filename ? 'bg-dark-panel border-t-2 border-t-dark-accent text-white' : 'text-gray-500 hover:bg-dark-panel'}`}
+                            onClick={() => setActiveFile(filename)}
+                        >
+                            <span className="flex items-center gap-2"><i className="fas fa-cube text-[10px]"></i> {filename}</span>
+                            <span 
+                                onClick={(e) => { e.stopPropagation(); closeFile(filename); }}
+                                className="hover:bg-red-500 hover:text-white rounded-full w-4 h-4 flex items-center justify-center"
+                            >×</span>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+
+        // 4. Editor Component
+        const Editor = ({ code, setCode }) => {
+            const lines = code.split('\n').length;
+            
+            return (
+                <div className="flex-1 flex relative bg-dark-bg font-mono text-sm">
+                    {/* Line Numbers */}
+                    <div className="w-10 bg-dark-sidebar border-r border-gray-700 text-right pr-2 pt-2 text-gray-600 select-none">
+                        {Array.from({length: lines}, (_, i) => i + 1).map(n => (
+                            <div key={n}>{n}</div>
+                        ))}
+                    </div>
+                    {/* Text Area */}
+                    <textarea 
+                        value={code}
+                        onChange={(e) => setCode(e.target.value)}
+                        className="flex-1 bg-transparent border-0 p-2 text-gray-300 resize-none leading-6"
+                        spellCheck="false"
+                    />
+                </div>
+            );
+        };
+
+        // 5. 3D Preview Component (Three.js Wrapper)
+        const ThreePreview = ({ codeTrigger }) => {
+            const mountRef = useRef(null);
+            const engineRef = useRef(null); // Store Three.js instances
+
+            useEffect(() => {
+                // Init Three.js
+                const width = mountRef.current.clientWidth;
+                const height = mountRef.current.clientHeight;
+
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x282a36);
+
+                const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+                camera.position.set(50, 50, 50);
+
+                const renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(width, height);
+                mountRef.current.appendChild(renderer.domElement);
+
+                const controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+
+                // Lights & Grid
+                scene.add(new THREE.AmbientLight(0x404040));
+                const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+                dirLight.position.set(10, 20, 10);
+                scene.add(dirLight);
+                scene.add(new THREE.GridHelper(100, 100, 0x44475a, 0x44475a));
+                scene.add(new THREE.AxesHelper(10));
+
+                const modelGroup = new THREE.Group();
+                scene.add(modelGroup);
+
+                engineRef.current = { scene, camera, renderer, controls, modelGroup };
+
+                // Animation Loop
+                const animate = () => {
+                    requestAnimationFrame(animate);
+                    controls.update();
+                    renderer.render(scene, camera);
+                };
+                animate();
+
+                // Cleanup
+                return () => {
+                    mountRef.current.removeChild(renderer.domElement);
+                };
+            }, []);
+
+            // Parser Logic (Runs when codeTrigger changes)
+            useEffect(() => {
+                if (!engineRef.current) return;
+                const { modelGroup } = engineRef.current;
+                
+                // Clear old
+                while(modelGroup.children.length > 0){ 
+                    modelGroup.remove(modelGroup.children[0]); 
+                }
+
+                // Simple Parser
+                const lines = codeTrigger.code.split('\n');
+                let curColor = "#bd93f9";
+                let curPos = [0,0,0];
+
+                lines.forEach(line => {
+                    line = line.trim();
+                    if (line.startsWith('//')) return;
+
+                    if (line.includes('color')) {
+                        const m = line.match(/color\("(.+?)"\)/);
+                        if (m) curColor = m[1];
+                    }
+                    if (line.includes('translate')) {
+                        const m = line.match(/\[([\d.-]+),\s*([\d.-]+),\s*([\d.-]+)\]/);
+                        if (m) curPos = [parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3])];
+                    }
+                    if (line.includes('cube')) {
+                        const m = line.match(/\[([\d.-]+),\s*([\d.-]+),\s*([\d.-]+)\]/);
+                        if (m) {
+                            const geometry = new THREE.BoxGeometry(parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3]));
+                            const material = new THREE.MeshPhongMaterial({ color: curColor });
+                            const mesh = new THREE.Mesh(geometry, material);
+                            mesh.position.set(curPos[0], curPos[1], curPos[2]);
+                            modelGroup.add(mesh);
+                        }
+                    }
+                    if (line.includes('sphere')) {
+                        const m = line.match(/r=([\d.-]+)/);
+                        if (m) {
+                            const geometry = new THREE.SphereGeometry(parseFloat(m[1]), 32, 32);
+                            const material = new THREE.MeshPhongMaterial({ color: curColor });
+                            const mesh = new THREE.Mesh(geometry, material);
+                            mesh.position.set(curPos[0], curPos[1], curPos[2]);
+                            modelGroup.add(mesh);
+                        }
+                    }
+                });
+
+            }, [codeTrigger]);
+
+            return <div ref={mountRef} className="w-full h-full bg-gray-900" />;
+        };
+
+        // 6. Console Component
+        const Console = ({ logs, clearLogs, isCollapsed, toggleConsole }) => {
+            return (
+                <div className={`border-t border-gray-700 bg-dark-panel flex flex-col transition-all duration-300 ${isCollapsed ? 'h-8' : 'h-40'}`}>
+                    <div 
+                        className="h-8 bg-dark-sidebar border-b border-gray-700 px-3 flex items-center justify-between text-xs font-bold uppercase cursor-pointer"
+                        onClick={toggleConsole}
+                    >
+                        <span className="flex items-center gap-2"><i className="fas fa-terminal"></i> Термінал / Вивід</span>
+                        <div className="flex gap-3">
+                            <i onClick={(e) => { e.stopPropagation(); clearLogs(); }} className="fas fa-eraser hover:text-white cursor-pointer"></i>
+                            <i className={`fas fa-chevron-${isCollapsed ? 'up' : 'down'}`}></i>
+                        </div>
+                    </div>
+                    {!isCollapsed && (
+                        <div className="flex-1 p-2 font-mono text-xs overflow-y-auto text-green-400">
+                            {logs.map((log, i) => (
+                                <div key={i} className="mb-1 border-b border-white/5 pb-1"> {log}</div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // 7. Modal Component (Reusable)
+        const Modal = ({ isOpen, onClose, title, children, footer }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm">
+                    <div className="bg-dark-panel w-96 rounded-lg shadow-2xl border border-gray-700 overflow-hidden transform transition-all scale-100">
+                        <div className="bg-dark-sidebar px-4 py-3 border-b border-gray-700 font-bold flex justify-between items-center">
+                            {title}
+                            <button onClick={onClose} className="text-gray-500 hover:text-red-500"><i className="fas fa-times"></i></button>
+                        </div>
+                        <div className="p-4">{children}</div>
+                        {footer && <div className="bg-dark-sidebar px-4 py-3 border-t border-gray-700 flex justify-end gap-2">{footer}</div>}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- MAIN APP CONTAINER ---
+        const App = () => {
+            // State
+            const [files, setFiles] = useState(initialFiles);
+            const [activePanel, setActivePanel] = useState('explorer');
+            const [openFiles, setOpenFiles] = useState(['main.scad']);
+            const [activeFile, setActiveFile] = useState('main.scad');
+            const [codeTrigger, setCodeTrigger] = useState({ code: '', ts: 0 });
+            const [logs, setLogs] = useState(['System Ready. React v18 loaded.']);
+            const [consoleCollapsed, setConsoleCollapsed] = useState(false);
+            const [theme, setTheme] = useState('dark');
+            
+            // Modals
+            const [showSettings, setShowSettings] = useState(false);
+            const [showProfile, setShowProfile] = useState(false);
+
+            // Helpers
+            const addLog = (msg) => setLogs(prev => [...prev, msg]);
+            
+            const handleOpenFile = (filename) => {
+                if (!openFiles.includes(filename)) setOpenFiles([...openFiles, filename]);
+                setActiveFile(filename);
+            };
+
+            const handleCloseFile = (filename) => {
+                const newOpen = openFiles.filter(f => f !== filename);
+                setOpenFiles(newOpen);
+                if (activeFile === filename && newOpen.length > 0) setActiveFile(newOpen[newOpen.length - 1]);
+            };
+
+            const handleCodeChange = (newCode) => {
+                setFiles({ ...files, [activeFile]: newCode });
+            };
+
+            const handleRender = () => {
+                addLog("Compiling design...");
+                setCodeTrigger({ code: files[activeFile], ts: Date.now() });
+                setTimeout(() => addLog("Render complete. Objects updated."), 100);
+            };
+
+            const handleCreateFile = () => {
+                const name = prompt("Назва файлу:", "new.scad");
+                if(name && !files[name]) {
+                    setFiles({...files, [name]: "// New file"});
+                    handleOpenFile(name);
+                    addLog(`Created file: ${name}`);
+                }
+            };
+
+            const handleDeleteFile = (name) => {
+                if(confirm(`Видалити ${name}?`)) {
+                    const newFiles = {...files};
+                    delete newFiles[name];
+                    setFiles(newFiles);
+                    handleCloseFile(name);
+                    addLog(`Deleted: ${name}`);
+                }
+            };
+
+            // Apply Theme Effect
+            useEffect(() => {
+                if(theme === 'light') {
+                    document.documentElement.style.setProperty('--bg-dark', '#ffffff');
+                    // In a real Tailwind setup, we'd toggle a class on <html>
+                }
+            }, [theme]);
+
+            return (
+                <div className={`flex h-screen ${theme}`}>
+                    <Sidebar 
+                        activePanel={activePanel} 
+                        setActivePanel={setActivePanel}
+                        openSettings={() => setShowSettings(true)}
+                        openProfile={() => setShowProfile(true)}
+                    />
+                    
+                    <SidePanel 
+                        activePanel={activePanel} 
+                        files={files} 
+                        activeFile={activeFile}
+                        openFile={handleOpenFile}
+                        createNewFile={handleCreateFile}
+                        deleteFile={handleDeleteFile}
+                    />
+
+                    <div className="flex-1 flex flex-col min-w-0">
+                        <TabBar 
+                            openFiles={openFiles} 
+                            activeFile={activeFile} 
+                            setActiveFile={setActiveFile} 
+                            closeFile={handleCloseFile} 
+                        />
+
+                        <div className="flex-1 flex overflow-hidden">
+                            <Editor code={files[activeFile] || ''} setCode={handleCodeChange} />
+                            
+                            <div className="flex-1 flex flex-col bg-gray-800 border-l border-gray-700 relative">
+                                <div className="h-10 bg-dark-panel border-b border-gray-700 flex items-center justify-end px-2 gap-2">
+                                    <button className="px-3 py-1 text-xs bg-gray-700 rounded hover:bg-gray-600 text-white"><i className="fas fa-border-all"></i> Grid</button>
+                                    <button 
+                                        onClick={handleRender}
+                                        className="px-4 py-1 text-xs bg-dark-accent text-gray-900 font-bold rounded hover:opacity-90 transition-opacity"
+                                    >
+                                        <i className="fas fa-play"></i> Render (F5)
+                                    </button>
+                                </div>
+                                <div className="flex-1 relative">
+                                    <ThreePreview codeTrigger={codeTrigger} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <Console 
+                            logs={logs} 
+                            clearLogs={() => setLogs([])} 
+                            isCollapsed={consoleCollapsed}
+                            toggleConsole={() => setConsoleCollapsed(!consoleCollapsed)}
+                        />
+                    </div>
+
+                    {/* SETTINGS MODAL */}
+                    <Modal 
+                        isOpen={showSettings} 
+                        onClose={() => setShowSettings(false)} 
+                        title="Налаштування"
+                        footer={<button onClick={() => setShowSettings(false)} className="px-4 py-2 bg-dark-accent text-black rounded font-bold">Зберегти</button>}
+                    >
+                        <div className="flex flex-col gap-4">
+                            <div>
+                                <label className="text-xs text-gray-400 block mb-1">Тема</label>
+                                <select 
+                                    className="w-full bg-gray-800 border border-gray-600 rounded p-2 text-sm text-white"
+                                    value={theme}
+                                    onChange={(e) => setTheme(e.target.value)}
+                                >
+                                    <option value="dark">Dracula (Dark)</option>
+                                    <option value="light">Light (Experimental)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-400 block mb-1">Шрифт редактора</label>
+                                <input type="number" defaultValue="14" className="w-full bg-gray-800 border border-gray-600 rounded p-2 text-sm text-white"/>
+                            </div>
+                        </div>
+                    </Modal>
+
+                    {/* PROFILE MODAL */}
+                    <Modal isOpen={showProfile} onClose={() => setShowProfile(false)} title="Профіль">
+                        <div className="text-center">
+                            <div className="w-20 h-20 bg-dark-accent rounded-full mx-auto flex items-center justify-center text-3xl text-gray-900 mb-4">
+                                <i className="fas fa-user-astronaut"></i>
+                            </div>
+                            <h3 className="font-bold text-lg text-white">Студент</h3>
+                            <p className="text-gray-400 text-sm">student@lpnu.ua</p>
+                            <div className="mt-4 p-2 bg-gray-800 rounded text-xs text-green-400 border border-gray-700">
+                                Статус: Lab 5 in progress
+                            </div>
+                        </div>
+                    </Modal>
+
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

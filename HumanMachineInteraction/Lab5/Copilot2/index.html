@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OpenSCAD Modern UI v2.0 (Web)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    :root {
+      --bg: #1e1f29;
+      --bg-alt: #232531;
+      --panel: #2a2c39;
+      --panel-alt: #2f3140;
+      --text: #e6e6e9;
+      --muted: #b3b4bd;
+      --accent: #bd93f9; /* purple */
+      --accent-2: #50fa7b; /* green */
+      --accent-3: #ff79c6; /* pink */
+      --border: #3a3c4f;
+      --link: #8be9fd;
+      --ok: #50fa7b;
+      --warn: #f1fa8c;
+      --err: #ff5555;
+      --shadow: rgba(0,0,0,0.35);
+    }
+    [data-theme="light"] {
+      --bg: #f5f7fb;
+      --bg-alt: #f9fafc;
+      --panel: #ffffff;
+      --panel-alt: #f2f4f8;
+      --text: #1d2330;
+      --muted: #4b5565;
+      --accent: #6c5ce7;
+      --accent-2: #10b981;
+      --accent-3: #ec4899;
+      --border: #d9dde5;
+      --link: #0ea5e9;
+      --ok: #10b981;
+      --warn: #f59e0b;
+      --err: #ef4444;
+      --shadow: rgba(22, 29, 43, 0.15);
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    }
+    .app {
+      display: grid;
+      grid-template-rows: 56px 1fr 140px;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .topbar {
+      display: grid;
+      grid-template-columns: 240px 1fr 380px;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      background: var(--bg-alt);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 2px 12px var(--shadow);
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px; font-weight: 600;
+    }
+    .brand .logo {
+      width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--accent-3));
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+    .brand .title { font-size: 14px; opacity: 0.9; }
+    .toolbar {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .actions { display: flex; gap: 8px; justify-content: flex-end; }
+    button, .btn {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform .06s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+    button:hover { background: var(--panel-alt); }
+    button:active { transform: translateY(1px) scale(0.995); }
+    .btn-primary {
+      background: var(--accent);
+      border-color: transparent;
+      color: #111;
+    }
+    .btn-success {
+      background: var(--ok);
+      border-color: transparent;
+      color: #0B1A0B;
+    }
+    .btn-danger {
+      background: var(--err);
+      border-color: transparent;
+      color: #fff;
+    }
+    .btn-outline {
+      background: transparent;
+      border-color: var(--border);
+    }
+    .divider {
+      width: 1px; height: 28px; background: var(--border); margin: 0 6px;
+    }
+    .content {
+      display: grid;
+      grid-template-columns: 260px 1fr 420px;
+      gap: 10px;
+      padding: 10px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px var(--shadow);
+    }
+    .panel-header {
+      padding: 10px 12px;
+      background: var(--panel-alt);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      font-weight: 600; font-size: 13px;
+    }
+    .panel-body { height: 100%; }
+    .explorer {
+      display: flex; flex-direction: column; gap: 0;
+    }
+    .explorer-list {
+      padding: 8px;
+      height: calc(100% - 42px);
+      overflow: auto;
+    }
+    .file-item {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .file-item.active {
+      background: rgba(189,147,249,0.12);
+      border-color: var(--accent);
+    }
+    .file-name { font-weight: 500; }
+    .file-actions { display: flex; gap: 6px; }
+    .file-actions button { padding: 6px 8px; font-size: 12px; }
+    .editor {
+      display: grid;
+      grid-template-rows: 42px 1fr;
+    }
+    .tabs {
+      display: flex; gap: 6px; background: var(--panel-alt);
+      border-bottom: 1px solid var(--border);
+      padding: 6px;
+    }
+    .tab {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .tab.active { background: var(--accent); color: #111; border-color: transparent; }
+    .code {
+      width: 100%; height: 100%;
+      background: var(--panel);
+      color: var(--text);
+      border: none; outline: none;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 13px; line-height: 1.5; padding: 12px;
+      resize: none;
+    }
+    .viewport {
+      position: relative;
+      display: grid;
+      grid-template-rows: 42px 1fr;
+    }
+    .view-toolbar {
+      display: flex; gap: 8px; align-items: center;
+      padding: 6px; background: var(--panel-alt);
+      border-bottom: 1px solid var(--border);
+    }
+    .canvas-wrap { position: relative; }
+    #sceneCanvas { width: 100%; height: 100%; display: block; background: #111; }
+    .grid-overlay {
+      position: absolute; inset: 0; pointer-events: none;
+    }
+    .legend {
+      position: absolute; right: 10px; bottom: 10px;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px; border-radius: 10px; font-size: 12px;
+    }
+    .console {
+      display: grid; grid-template-rows: 42px 1fr;
+    }
+    .console-body {
+      padding: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+      overflow: auto;
+      height: 100%;
+    }
+    .line { margin: 4px 0; }
+    .line.ok { color: var(--ok); }
+    .line.warn { color: var(--warn); }
+    .line.err { color: var(--err); }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%; margin-right: 6px;
+    }
+    .status-ready { background: var(--ok); }
+    .status-busy { background: var(--warn); }
+    .status-error { background: var(--err); }
+    .search-input {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px; color: var(--text);
+      width: 220px;
+    }
+    .spacer { flex: 1; }
+    .toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 10px; border: 1px solid var(--border);
+      border-radius: 10px; cursor: pointer;
+    }
+    .toggle input { accent-color: var(--accent); }
+    .badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 10px; border: 1px solid var(--border);
+      border-radius: 10px; font-size: 12px; background: var(--panel);
+    }
+    .kbd {
+      font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+      border: 1px solid var(--border);
+      border-radius: 6px; padding: 2px 6px; background: var(--panel-alt);
+    }
+    @media (max-width: 1200px) {
+      .content { grid-template-columns: 1fr; grid-template-rows: 300px 380px 1fr; }
+      .topbar { grid-template-columns: 1fr; height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo"></div>
+        <div class="title">OpenSCAD Modern UI v2.0 (Web)</div>
+      </div>
+      <div class="toolbar">
+        <button id="btnNew" class="btn">New</button>
+        <button id="btnRename" class="btn">Rename</button>
+        <button id="btnDelete" class="btn btn-danger">Delete</button>
+        <div class="divider"></div>
+        <button id="btnSave" class="btn">Save</button>
+        <button id="btnCompile" class="btn">Compile</button>
+        <button id="btnRender" class="btn btn-success">Render</button>
+        <div class="divider"></div>
+        <button id="btnResetCamera" class="btn">Reset camera</button>
+        <label class="toggle"><input id="toggleGrid" type="checkbox" checked/> Grid</label>
+        <button id="btnTheme" class="btn btn-outline">Dark / Light</button>
+        <div class="spacer"></div>
+        <input id="search" class="search-input" placeholder="Search files..."/>
+      </div>
+      <div class="actions">
+        <div class="badge"><span class="status-dot status-ready"></span><span id="statusText">Ready</span></div>
+        <div class="badge">Objects: <span id="objCount" style="margin-left:6px;">0</span></div>
+        <div class="badge">Time: <span id="renderTime" style="margin-left:6px;">0.000s</span></div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="panel explorer">
+        <div class="panel-header">
+          <span>Провідник</span>
+          <span style="opacity:.7">Project</span>
+        </div>
+        <div id="explorerList" class="explorer-list"></div>
+      </div>
+
+      <div class="panel editor">
+        <div id="tabs" class="tabs"></div>
+        <textarea id="editor" class="code" spellcheck="false"></textarea>
+      </div>
+
+      <div class="panel viewport">
+        <div class="view-toolbar">
+          <span style="font-weight:600">Viewport</span>
+          <div class="spacer"></div>
+          <span class="badge">Controls: <span class="kbd">LMB</span> Orbit <span class="kbd">MMB</span> Pan <span class="kbd">Wheel</span> Zoom</span>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="sceneCanvas"></canvas>
+          <div class="legend">Units: mm • Grid: 10</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel console">
+      <div class="panel-header">
+        <span>Console / Output</span>
+        <div style="opacity:.7">Logs</div>
+      </div>
+      <div id="console" class="console-body"></div>
+    </div>
+  </div>
+
+  <script>
+    // ----------------------------
+    // Project state and files
+    // ----------------------------
+    const defaultFiles = {
+      "main.scad": `// Demo Cube
+color("#bd93f9");
+translate([0,0,0]);
+cube([20,20,20]);
+
+// Add a sphere
+translate([25,0,0]);
+color("#50fa7b");
+sphere(r=12);`,
+      "parts.scad": `// Define re-usable parts (minimal demo)
+module block(size=[20,20,20], tint="#ff79c6") {
+  color(tint);
+  cube(size);
+}
+
+translate([0,25,0]); block([16,16,10], "#8be9fd");`,
+      "config.scad": `// Project config (not used by parser yet)
+$fa = 12; // fragment angle
+$fs = 1;  // fragment size
+
+// Colors
+purple = "#bd93f9";
+green  = "#50fa7b";
+pink   = "#ff79c6";`
+    };
+
+    let files = JSON.parse(localStorage.getItem("openscad-web-files") || "null") || structuredClone(defaultFiles);
+    let activeFile = localStorage.getItem("openscad-web-active") || "main.scad";
+
+    // ----------------------------
+    // UI helpers
+    // ----------------------------
+    const el = id => document.getElementById(id);
+    const consoleEl = el("console");
+    function logLine(text, cls="") {
+      const div = document.createElement("div");
+      div.className = "line " + cls;
+      div.textContent = text;
+      consoleEl.appendChild(div);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+    function setStatus(text, state="ready") {
+      el("statusText").textContent = text;
+      const dot = document.querySelector(".status-dot");
+      dot.className = "status-dot " + (state === "busy" ? "status-busy" : state === "error" ? "status-error" : "status-ready");
+    }
+    function saveFiles() {
+      localStorage.setItem("openscad-web-files", JSON.stringify(files));
+      localStorage.setItem("openscad-web-active", activeFile);
+      logLine("> Saved.", "ok");
+    }
+
+    // ----------------------------
+    // Explorer + Tabs
+    // ----------------------------
+    function renderExplorer(filter="") {
+      const list = el("explorerList");
+      list.innerHTML = "";
+      Object.keys(files)
+        .filter(n => n.toLowerCase().includes(filter.toLowerCase()))
+        .sort()
+        .forEach(name => {
+          const item = document.createElement("div");
+          item.className = "file-item" + (name === activeFile ? " active" : "");
+          const label = document.createElement("div");
+          label.className = "file-name";
+          label.textContent = name;
+          const actions = document.createElement("div");
+          actions.className = "file-actions";
+          const openBtn = document.createElement("button");
+          openBtn.textContent = "Open";
+          openBtn.onclick = () => { setActiveFile(name); };
+          const delBtn = document.createElement("button");
+          delBtn.textContent = "Delete";
+          delBtn.onclick = () => deleteFile(name);
+          actions.appendChild(openBtn);
+          actions.appendChild(delBtn);
+          item.appendChild(label);
+          item.appendChild(actions);
+          item.onclick = (e) => { if (e.target === item || e.target === label) setActiveFile(name); };
+          list.appendChild(item);
+        });
+    }
+    function renderTabs() {
+      const tabs = el("tabs");
+      tabs.innerHTML = "";
+      Object.keys(files).sort().forEach(name => {
+        const t = document.createElement("div");
+        t.className = "tab" + (name === activeFile ? " active" : "");
+        t.textContent = name;
+        t.onclick = () => setActiveFile(name);
+        tabs.appendChild(t);
+      });
+    }
+    function setActiveFile(name) {
+      activeFile = name;
+      el("editor").value = files[activeFile];
+      renderExplorer(el("search").value);
+      renderTabs();
+      saveFiles();
+      logLine(`> Opened: ${name}`);
+    }
+    function deleteFile(name) {
+      if (!files[name]) return;
+      if (!confirm(`Delete ${name}?`)) return;
+      delete files[name];
+      const keys = Object.keys(files);
+      activeFile = keys.length ? keys[0] : null;
+      if (activeFile) el("editor").value = files[activeFile]; else el("editor").value = "";
+      renderExplorer(el("search").value);
+      renderTabs();
+      saveFiles();
+      logLine(`> Deleted: ${name}`, "warn");
+    }
+
+    // ----------------------------
+    // Editor
+    // ----------------------------
+    el("editor").addEventListener("input", () => {
+      if (!activeFile) return;
+      files[activeFile] = el("editor").value;
+    });
+
+    // ----------------------------
+    // Topbar actions
+    // ----------------------------
+    el("btnNew").onclick = () => {
+      const name = prompt("New file name:", "new.scad");
+      if (!name) return;
+      if (files[name]) { alert("File exists."); return; }
+      files[name] = "// New file";
+      setActiveFile(name);
+    };
+    el("btnRename").onclick = () => {
+      if (!activeFile) return;
+      const name = prompt("Rename file:", activeFile);
+      if (!name || name === activeFile) return;
+      if (files[name]) { alert("File exists."); return; }
+      files[name] = files[activeFile];
+      delete files[activeFile];
+      setActiveFile(name);
+    };
+    el("btnDelete").onclick = () => {
+      if (!activeFile) return;
+      deleteFile(activeFile);
+    };
+    el("btnSave").onclick = saveFiles;
+    el("search").addEventListener("input", e => renderExplorer(e.target.value));
+    el("btnTheme").onclick = () => {
+      const root = document.documentElement;
+      const next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
+      root.setAttribute("data-theme", next);
+      logLine("> Theme: " + next);
+    };
+
+    // ----------------------------
+    // THREE setup
+    // ----------------------------
+    const canvas = el("sceneCanvas");
+    const renderer = new THREE.WebGLRenderer({canvas, antialias: true});
+    renderer.setPixelRatio(window.devicePixelRatio || 1);
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0e0f14);
+
+    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+    camera.position.set(80, 60, 90);
+
+    const controls = new THREE.OrbitControls(camera, canvas);
+    controls.enableDamping = true;
+
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x333333, 0.9);
+    scene.add(hemi);
+    const dir = new THREE.DirectionalLight(0xffffff, 0.6);
+    dir.position.set(50, 80, 50);
+    scene.add(dir);
+
+    // Grid and axes
+    let grid = new THREE.GridHelper(200, 20, 0x444444, 0x2a2a2a);
+    scene.add(grid);
+    const axes = new THREE.AxesHelper(60);
+    axes.material.depthTest = false;
+    axes.renderOrder = 2;
+    scene.add(axes);
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      renderer.setSize(rect.width, rect.height, false);
+      camera.aspect = rect.width / rect.height;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener("resize", resize);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+    resize();
+
+    // ----------------------------
+    // Parser: minimal OpenSCAD-like
+    // Supports: color("#hex"), translate([x,y,z]), cube([sx,sy,sz]|size), sphere(r)
+    // ----------------------------
+    function parseScad(source) {
+      const lines = source.split(/\r?\n/);
+      const ops = [];
+      let i = 0;
+
+      function matchLine(rx, line) {
+        const m = rx.exec(line.trim());
+        return m;
+      }
+
+      const transformStack = [];
+      let currentColor = "#cccccc";
+
+      function pushTransform(t) { transformStack.push(t); }
+      function clearTransforms() { transformStack.length = 0; }
+
+      for (; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line || line.startsWith("//")) continue;
+
+        // color("#bd93f9");
+        let m = matchLine(/^color\(\s*("(?:#?[0-9a-fA-F]{3,8}|[^"]+)")\s*\)\s*;?$/, line);
+        if (m) {
+          currentColor = JSON.parse(m[1]); // strip quotes
+          ops.push({type: "note", msg: `color set to ${currentColor}`});
+          continue;
+        }
+
+        // translate([x,y,z]);
+        m = matchLine(/^translate\(\s*\[\s*(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)\s*\]\s*\)\s*;?$/, line);
+        if (m) {
+          const t = {x: parseFloat(m[1]), y: parseFloat(m[2]), z: parseFloat(m[3])};
+          pushTransform(t);
+          ops.push({type: "note", msg: `translate ${t.x},${t.y},${t.z}`});
+          continue;
+        }
+
+        // cube([sx,sy,sz]) or cube(size);
+        m = matchLine(/^cube\(\s*\[\s*(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)\s*\]\s*\)\s*;?$/, line);
+        if (m) {
+          const size = {x: parseFloat(m[1]), y: parseFloat(m[2]), z: parseFloat(m[3])};
+          ops.push({type: "cube", size, color: currentColor, translate: transformStack.slice()});
+          clearTransforms();
+          continue;
+        }
+        m = matchLine(/^cube\(\s*(-?\d+(?:\.\d+)?)\s*\)\s*;?$/, line);
+        if (m) {
+          const s = parseFloat(m[1]);
+          ops.push({type: "cube", size: {x:s,y:s,z:s}, color: currentColor, translate: transformStack.slice()});
+          clearTransforms();
+          continue;
+        }
+
+        // sphere(r=12);
+        m = matchLine(/^sphere\(\s*r\s*=\s*(-?\d+(?:\.\d+)?)\s*\)\s*;?$/, line);
+        if (m) {
+          const r = parseFloat(m[1]);
+          ops.push({type: "sphere", r, color: currentColor, translate: transformStack.slice()});
+          clearTransforms();
+          continue;
+        }
+
+        // Allow benign module definitions / assignments (ignored)
+        if (/^(module\s+|[a-zA-Z_]\w*\s*=)/.test(line)) {
+          ops.push({type: "note", msg: "Skipped unsupported: " + line});
+          continue;
+        }
+
+        ops.push({type: "error", msg: "Unrecognized syntax: " + line});
+      }
+
+      return ops;
+    }
+
+    // ----------------------------
+    // Geometry creation
+    // ----------------------------
+    const group = new THREE.Group();
+    scene.add(group);
+
+    function clearSceneObjects() {
+      while (group.children.length) {
+        const obj = group.children.pop();
+        obj.traverse(o => {
+          if (o.geometry) o.geometry.dispose();
+          if (o.material) {
+            if (Array.isArray(o.material)) o.material.forEach(m => m.dispose());
+            else o.material.dispose();
+          }
+        });
+      }
+    }
+
+    function colorToThree(col) {
+      try {
+        return new THREE.Color(col);
+      } catch {
+        return new THREE.Color("#cccccc");
+      }
+    }
+
+    function buildFromOps(ops) {
+      clearSceneObjects();
+      const t0 = performance.now();
+      let objCount = 0;
+
+      ops.forEach(op => {
+        if (op.type === "cube") {
+          const geo = new THREE.BoxGeometry(op.size.x, op.size.y, op.size.z);
+          const mat = new THREE.MeshStandardMaterial({color: colorToThree(op.color), roughness: 0.6, metalness: 0.05});
+          const mesh = new THREE.Mesh(geo, mat);
+          // Centered geometry by default in Three.js is at origin; OpenSCAD cube is also positioned by translate.
+          const pos = op.translate.reduce((acc, t) => ({x: acc.x + t.x, y: acc.y + t.y, z: acc.z + t.z}), {x:0,y:0,z:0});
+          mesh.position.set(pos.x + op.size.x/2, pos.y + op.size.y/2, pos.z + op.size.z/2);
+          group.add(mesh);
+          objCount++;
+        } else if (op.type === "sphere") {
+          const geo = new THREE.SphereGeometry(op.r, 48, 32);
+          const mat = new THREE.MeshStandardMaterial({color: colorToThree(op.color), roughness: 0.5, metalness: 0.1});
+          const mesh = new THREE.Mesh(geo, mat);
+          const pos = op.translate.reduce((acc, t) => ({x: acc.x + t.x, y: acc.y + t.y, z: acc.z + t.z}), {x:0,y:0,z:0});
+          mesh.position.set(pos.x, pos.y, pos.z);
+          group.add(mesh);
+          objCount++;
+        } else if (op.type === "note") {
+          logLine("> " + op.msg, "ok");
+        } else if (op.type === "error") {
+          logLine("> " + op.msg, "err");
+        }
+      });
+
+      const t1 = performance.now();
+      el("objCount").textContent = objCount.toString();
+      el("renderTime").textContent = (Math.max(0, t1 - t0)/1000).toFixed(3) + "s";
+      logLine(`> Rendering finished. Objects: ${objCount}. Time: ${el("renderTime").textContent}`);
+      setStatus("Ready");
+    }
+
+    // ----------------------------
+    // Compile & Render
+    // ----------------------------
+    function compileProject() {
+      setStatus("Compiling...", "busy");
+      consoleEl.innerHTML = "";
+      logLine("> OpenSCAD Modern UI v2.0 Loaded.", "ok");
+      logLine("> Compiling...");
+      // Combine all files naïvely: main first, then others
+      const order = Object.keys(files).sort();
+      const mainFirst = ["main.scad"].concat(order.filter(n => n !== "main.scad"));
+      const source = mainFirst.map(n => files[n]).join("\n\n");
+      const ops = parseScad(source);
+      setStatus("Compiled");
+      return ops;
+    }
+
+    function render() {
+      setStatus("Rendering...", "busy");
+      const ops = compileProject();
+      buildFromOps(ops);
+    }
+
+    el("btnCompile").onclick = compileProject;
+    el("btnRender").onclick = render;
+
+    // ----------------------------
+    // View controls
+    // ----------------------------
+    el("btnResetCamera").onclick = () => {
+      camera.position.set(80, 60, 90);
+      controls.target.set(0, 0, 0);
+      controls.update();
+      logLine("> Camera reset.");
+    };
+    el("toggleGrid").addEventListener("change", e => {
+      grid.visible = e.target.checked;
+    });
+
+    // ----------------------------
+    // Initial load
+    // ----------------------------
+    renderExplorer();
+    renderTabs();
+    setActiveFile(activeFile);
+    logLine("> OpenSCAD Modern UI v2.0 Loaded.", "ok");
+    logLine("> Ready.");
+
+    // Keyboard shortcuts
+    window.addEventListener("keydown", (e) => {
+      // Ctrl/Cmd+S
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        saveFiles();
+      }
+      // Ctrl/Cmd+R (Render)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "r") {
+        e.preventDefault();
+        render();
+      }
+    });
+  </script>
+</body>
+</html>
