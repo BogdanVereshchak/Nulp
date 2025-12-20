@@ -12,23 +12,18 @@ const int W = 800;
 const int H = 600;
 const cv::Point CENTER(W / 2, H / 2);
 
-// Scaling factor: 1 mathematical unit = 80 pixels
-// This is needed because sqrt(6) is ~2.45 pixels, which is too small to see.
 const double SCALE = 80.0; 
 
-// Ellipse parameters for equation x^2/6 + y^2/3 = 1
-// a^2 = 6, b^2 = 3
-const double A_MATH = sqrt(6.0); // approx 2.449
-const double B_MATH = sqrt(3.0); // approx 1.732
 
-// Convert math coordinates to screen coordinates
+const double A_MATH = sqrt(6.0); 
+const double B_MATH = sqrt(3.0); 
+
 cv::Point toScreen(double x, double y) {
     return cv::Point(CENTER.x + x * SCALE, CENTER.y - y * SCALE);
 }
 
 void drawGrid(cv::Mat& img) {
     img = cv::Scalar(255, 255, 255);
-    // Draw grid lines every 1 unit
     for (int i = -10; i <= 10; i++) {
         cv::Point p1 = toScreen(i, -10);
         cv::Point p2 = toScreen(i, 10);
@@ -53,7 +48,6 @@ void drawGrid(cv::Mat& img) {
 }
 
 void solveAndDraw(cv::Mat& img) {
-    // 1. Draw Ellipse: x = sqrt(6)*cos(t), y = sqrt(3)*sin(t)
     vector<cv::Point> ellipsePoints;
     for (int angle = 0; angle <= 360; angle++) {
         double rad = angle * CV_PI / 180.0;
@@ -63,17 +57,11 @@ void solveAndDraw(cv::Mat& img) {
     }
     cv::polylines(img, ellipsePoints, true, cv::Scalar(200, 0, 0), 2, cv::LINE_AA);
 
-    // 2. Calculate Square Sides
-    // Equation: x^2/6 + y^2/3 = 1 -> a^2 = 6, b^2 = 3
-    // Condition for tangent square (angle 45 deg, k = +/- 1):
-    // m = sqrt(a^2 + b^2)
-    double m_val = sqrt(A_MATH * A_MATH + B_MATH * B_MATH); // sqrt(6 + 3) = sqrt(9) = 3
+
+    double m_val = sqrt(A_MATH * A_MATH + B_MATH * B_MATH); 
     
     cout << "Calculated m: " << m_val << endl;
 
-    // The square vertices for this symmetric ellipse and square will be on the axes
-    // Vertices at (0, 3), (3, 0), (0, -3), (-3, 0)
-    
     vector<cv::Point> squarePoints;
     squarePoints.push_back(toScreen(0, m_val));  // Top (0, 3)
     squarePoints.push_back(toScreen(m_val, 0));  // Right (3, 0)

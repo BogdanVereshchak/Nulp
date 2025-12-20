@@ -84,13 +84,13 @@ void Task_B() {
 }
 
 void Task_C() {
-    Point2D D = {-sqrt(3.0), 1.0}; // x = -1.732, y = 1
+    Point2D D = {-sqrt(3.0), 1.0};
     double axisRotDeg = 45.0;
     double axisRotRad = toRadians(axisRotDeg);
 
     double r = sqrt(D.x*D.x + D.y*D.y);
-    double phi_std = atan2(D.y, D.x); // Standard angle
-    double phi_new = phi_std - axisRotRad; // Angle relative to new axis
+    double phi_std = atan2(D.y, D.x);
+    double phi_new = phi_std - axisRotRad; 
 
     cout << "\n--- Task C (Rotated Polar Axis) ---" << endl;
     cout << "D(" << D.x << ", " << D.y << ")" << endl;
@@ -110,7 +110,7 @@ void Task_C() {
 }
 
 void Task_D() {
-    double h[] = {6, 4, 6, 4}; // x, y, z, w
+    double h[] = {6, 4, 6, 4}; 
     Point2D affine = {h[0]/h[3], h[1]/h[3]};
     double z_affine = h[2]/h[3];
 
@@ -129,9 +129,9 @@ void Task_E() {
     Point2D A = {3, -5};
     Point2D B = {2, -9};
     
-    // Vector BA
-    double dx = A.x - B.x; // 1
-    double dy = A.y - B.y; // 4
+
+    double dx = A.x - B.x; 
+    double dy = A.y - B.y; 
     double lenBA = sqrt(dx*dx + dy*dy);
     double angle = atan2(dy, dx);
     
@@ -140,7 +140,7 @@ void Task_E() {
     cout << "BA Vector: (" << dx << ", " << dy << "), Length: " << lenBA << endl;
     cout << "Rotation Angle: " << toDegrees(angle) << " deg" << endl;
     
-    // Step 1: Initial State
+
     cv::Mat img1(H, W, CV_8UC3);
     drawAxes(img1, "Task E (Step 1): Initial Points A & B");
     int viewOffset = -200;
@@ -149,7 +149,7 @@ void Task_E() {
     drawPoint(img1, B, "B(2, -9)", cv::Scalar(0,0,255));
     cv::line(img1, toScreen(B), toScreen(A), cv::Scalar(200,200,200), 1, cv::LINE_AA);
     
-    // Step 2: New Origin at B
+
     cv::Mat img2 = img1.clone();
     cv::rectangle(img2, cv::Point(0,0), cv::Point(W,60), cv::Scalar(255,255,255), -1); // Clear title
     cv::putText(img2, "Task E (Step 2): Origin shifted to B", cv::Point(20, 40), cv::FONT_HERSHEY_DUPLEX, 0.8, cv::Scalar(0,0,0), 1, cv::LINE_AA);
@@ -157,11 +157,11 @@ void Task_E() {
     cv::line(img2, cv::Point(screenB.x-100, screenB.y), cv::Point(screenB.x+100, screenB.y), cv::Scalar(0,150,150), 1, cv::LINE_AA); // New X'
     cv::line(img2, cv::Point(screenB.x, screenB.y-100), cv::Point(screenB.x, screenB.y+100), cv::Scalar(0,150,150), 1, cv::LINE_AA); // New Y'
     
-    // Step 3: Rotation
+
     cv::Mat img3 = img2.clone();
     cv::rectangle(img3, cv::Point(0,0), cv::Point(W,60), cv::Scalar(255,255,255), -1);
     cv::putText(img3, "Task E (Step 3): Axes Rotated along AB", cv::Point(20, 40), cv::FONT_HERSHEY_DUPLEX, 0.8, cv::Scalar(0,0,0), 1, cv::LINE_AA);
-    // Draw Final Axes aligned with BA
+
     cv::Point axisEnd = toScreen({B.x + cos(angle)*4, B.y + sin(angle)*4});
     cv::arrowedLine(img3, screenB, axisEnd, cv::Scalar(0,180,0), 2, cv::LINE_AA); // Final X axis
     cv::putText(img3, "New X Axis", cv::Point(axisEnd.x, axisEnd.y-10), cv::FONT_HERSHEY_DUPLEX, 0.6, cv::Scalar(0,180,0), 1, cv::LINE_AA);
