@@ -9,9 +9,9 @@ using namespace std;
 
 const double PIXELS_TO_METERS = 0.07; // (Метрів / 1 піксель) 
 // Мінімальна площа контуру (в пікселях), щоб вважатися об'єктом
-const double CONTOUR_MIN_AREA = 1000.0; 
+const double CONTOUR_MIN_AREA = 800.0; 
 // Площа (в пікселях), вище якої об'єкт вважається вантажівкою
-const double TRUCK_AREA_THRESHOLD = 8000.0; 
+const double TRUCK_AREA_THRESHOLD = 6000.0; 
 
 
 struct movingObj
@@ -57,15 +57,23 @@ double filterAndPredict(KalmanFilter& kf, double measurement) {
 }
 
 
-Mat cleanMask(Mat mask) {
-    Mat cleanedMask;
-    // morphologyEx(mask, cleanedMask, MORPH_OPEN, getStructuringElement(MORPH_ELLIPSE, Size(3, 3)));
-    // morphologyEx(cleanedMask, cleanedMask, MORPH_CLOSE, getStructuringElement(MORPH_ELLIPSE, Size(7, 7)));
-    // dilate(cleanedMask, cleanedMask, getStructuringElement(MORPH_ELLIPSE, Size(7, 7)), Point(-1, -1), 1);
+Mat cleanMask(const Mat& mask) {
+    Mat cleaned;
 
-    medianBlur(mask, cleanedMask, 3);
-    dilate(cleanedMask, cleanedMask, getStructuringElement(MORPH_RECT, Size(3,3)), Point(-1,-1), 1);
-    return cleanedMask;
+    // 1. Видалення дрібного шуму
+    morphologyEx(mask, cleaned, MORPH_OPEN,
+        getStructuringElement(MORPH_ELLIPSE, Size(3,3)));
+
+    // 2. Заповнення дірок всередині об'єктів
+    morphologyEx(cleaned, cleaned, MORPH_CLOSE,
+        getStructuringElement(MORPH_ELLIPSE, Size(7,7)));
+
+    // 3. Трохи розширити об'єкти (НЕ ОБОВʼЯЗКОВО)
+    dilate(cleaned, cleaned,
+        getStructuringElement(MORPH_ELLIPSE, Size(3,3)), 
+        Point(-1,-1), 1);
+
+    return cleaned;
 }
 
 vector<vector<Point>> findMovingObjContours(Mat frame, double minArea) {
@@ -202,7 +210,7 @@ void drawTracking(Mat& frame, const vector<movingObj>& objs, double fps, double 
 }
 
 int main() {
-    VideoCapture cap("Traffic.mp4");
+    VideoCapture cap("Traffic3.mp4");
     if (!cap.isOpened()) {
         cout << "Cant open video!" << endl;
         return -1;
@@ -228,14 +236,16 @@ int main() {
     // KalmanFilter kf_x, kf_y, kf_a;
     // setupKalmanFilters(kf_x, kf_y, kf_a, 0.01, 0.3);
     double smooth_dx = 0.0, smooth_dy = 0.0;
-    const double ALPHA = 0.85;
+    const double ALPHA = 0; 
     Mat prev_frame, prev_grey;
     vector<Point2f> prev_pts;
     cap.read(prev_frame);
     if (prev_frame.empty()) return -1;
     cvtColor(prev_frame, prev_grey, COLOR_BGR2GRAY);
 
-    Ptr<BackgroundSubtractor> bg = createBackgroundSubtractorMOG2(500, 16, true); // true = detectShadows
+    Ptr<BackgroundSubtractor> bg = createBackgroundSubtractorMOG2(200, 16.0, true); // true = detectShadows
+    Ptr<BackgroundSubtractor> bg_prev = createBackgroundSubtractorMOG2(500, 16.0, true); // true = detectShadows
+    //Ptr<BackgroundSubtractor> bg = createBackgroundSubtractorKNN(500, 400.0, true); // true = detectShadows
 
     // cv::cuda::GpuMat gpu_frame, gpu_fgmask;
     // cv::Ptr<cv::cuda::BackgroundSubtractorMOG2> bg = cv::cuda::createBackgroundSubtractorMOG2(500, 16, true);
@@ -255,13 +265,13 @@ int main() {
         cvtColor(cur_frame, cur_grey, COLOR_BGR2GRAY);
 
         Mat fgMaskPrev;
-        bg->apply(prev_frame, fgMaskPrev); 
-        Mat staticMaskPrev;
-        threshold(fgMaskPrev, staticMaskPrev, 200, 255, THRESH_BINARY_INV);
+        //bg->apply(prev_frame, fgMaskPrev); 
+        //Mat staticMaskPrev;
+        //threshold(fgMaskPrev, staticMaskPrev, 200, 255, THRESH_BINARY_INV);
 
         if (prev_pts.size() < 80) {
             vector<Point2f> candidates;
-            goodFeaturesToTrack(prev_grey, candidates, 100, 0.01, 8, staticMaskPrev);
+            goodFeaturesToTrack(prev_grey, candidates, 100, 0.01, 8);
             prev_pts = candidates;
         }
 
@@ -284,7 +294,6 @@ int main() {
         }
 
         double dx = 0.0, dy = 0.0;
-        bool haveGoodEstimate = false;
 
         if (dxs.size() >= 6) {
             auto median = [](vector<double>& v) -> double {
@@ -299,7 +308,6 @@ int main() {
             };
             dx = median(dxs);
             dy = median(dys);
-            haveGoodEstimate = true;
         } else {
             Mat f1, f2;
             prev_grey.convertTo(f1, CV_32F);
@@ -307,7 +315,6 @@ int main() {
             Point2d p = phaseCorrelate(f1, f2);
             dx = p.x;
             dy = p.y;
-            if (std::hypot(dx, dy) < 1000.0) haveGoodEstimate = true;
         }
 
         // Згладжування (EMA)
@@ -320,7 +327,7 @@ int main() {
         transformation_matrix.at<double>(1, 2) = -smooth_dy;
 
         Mat stabilized_frame;
-        warpAffine(cur_frame, stabilized_frame, transformation_matrix, cur_frame.size(), INTER_LINEAR, BORDER_REPLICATE);
+        warpAffine(cur_frame, stabilized_frame, transformation_matrix, cur_frame.size(), INTER_LINEAR, BORDER_CONSTANT);
 
         // --- 2.2 Відображення "Original vs Stabilized" ---
         // Mat comparison_canvas = Mat::zeros(cur_frame.rows, cur_frame.cols * 2 + 10, cur_frame.type());
@@ -359,7 +366,7 @@ int main() {
         drawTracking(stabilized_frame, objects, fps, PIXELS_TO_METERS);
 
         // --- 5. Збірка сітки (Grid) ---
-                Mat bgModelVis, shadowVis, maskVis;
+        Mat bgModelVis, shadowVis, maskVis;
         
         if (!backgroundModel.empty())
             resize(backgroundModel, bgModelVis, frameSize);
@@ -372,10 +379,18 @@ int main() {
         cvtColor(mask, maskVis, COLOR_GRAY2BGR);
         resize(maskVis, maskVis, frameSize);
 
+        Mat fgMaskBGR;
+        cvtColor(fgMask, fgMaskBGR, COLOR_GRAY2BGR);
+        resize(fgMaskBGR, fgMaskBGR, frameSize);
+        
+        Mat fgOnlyMaskBGR;
+        cvtColor(foregroundOnlyMask, fgOnlyMaskBGR, COLOR_GRAY2BGR);
+        resize(fgOnlyMaskBGR, fgOnlyMaskBGR, frameSize);
+
         stabilized_frame.copyTo(canvas(roi_TL));
         bgModelVis.copyTo(canvas(roi_TR));
         maskVis.copyTo(canvas(roi_BL));
-        shadowVis.copyTo(canvas(roi_BR));
+        fgMaskBGR.copyTo(canvas(roi_BR));
 
         putText(canvas, "Tracking (Stabilized)", roi_TL.tl() + Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255, 255, 0), 2);
         putText(canvas, "Background Model", roi_TR.tl() + Point(10, 30), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255, 255, 0), 2);
