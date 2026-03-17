@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Домедична допомога при електротравмах</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #e67e22;
+            --text-light: #ecf0f1;
+            --bg-light: #ffffff;
+            --danger: #c0392b;
+        }
+
+	img {
+	    width: 100%;
+	}
+
+        body {
+            background-color: #d1d5db;
+            margin: 0;
+            padding: 40px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 50px;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .slide {
+            width: 1000px;
+            height: 600px;
+            background: var(--bg-light);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border-top: 10px solid var(--primary);
+        }
+
+        /* Header / Footer */
+        .slide-header {
+            padding: 30px 50px 10px 50px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .slide-header h2 {
+            font-family: 'Roboto Slab', serif;
+            color: var(--primary);
+            font-size: 32px;
+            margin: 0;
+            border-bottom: 3px solid var(--accent);
+        }
+
+        .slide-footer {
+            margin-top: auto;
+            padding: 15px 50px;
+            background: #f8f9fa;
+            font-size: 14px;
+            color: #7f8c8d;
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid #eee;
+        }
+
+        .content {
+            padding: 20px 50px 40px 50px;
+            flex-grow: 1;
+        }
+
+        /* Title Page */
+        .title-page {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(135deg, var(--primary) 0%, #34495e 100%);
+            color: var(--text-light);
+            border-top: none;
+        }
+
+        .title-page h1 {
+            font-family: 'Roboto Slab', serif;
+            font-size: 54px;
+            margin-bottom: 20px;
+        }
+
+        .title-page .decorator {
+            width: 80px;
+            height: 4px;
+            background: var(--accent);
+            margin: 20px auto;
+        }
+
+        /* Academic Lists */
+        .academic-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .academic-list li {
+            font-size: 20px;
+            margin-bottom: 15px;
+            padding-left: 35px;
+            position: relative;
+            line-height: 1.4;
+        }
+
+        .academic-list li::before {
+            content: "\f105";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+
+        /* Status Boxes */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .status-card {
+            background: #fdfefe;
+            border: 1px solid #e0e0e0;
+            padding: 20px;
+            border-radius: 8px;
+            transition: transform 0.2s;
+        }
+
+        .status-card h4 {
+            margin-top: 0;
+            color: var(--danger);
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        /* Two Column Layout */
+        .two-col {
+            display: flex;
+            gap: 40px;
+        }
+
+        .col-left { flex: 1.5; }
+        .col-right { flex: 1; }
+
+        .image-placeholder {
+            background: #eee;
+            width: 100%;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            border: 1px dashed #ccc;
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 5px solid #ff9800;
+            padding: 15px;
+            margin: 15px 0;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Слайд 1: Титульний -->
+<div class="slide title-page">
+    <i class="fa-solid fa-graduation-cap" style="font-size: 60px; color: var(--accent);"></i>
+    <h1>Домедична допомога при електротравмі</h1>
+    <div class="decorator"></div>
+    <p style="font-size: 24px; opacity: 0.8;">Виконав студент групи ПП-44 Верещак Богдан</p>
+</div>
+
+<!-- Слайд 2: Поняття електротравми -->
+<div class="slide">
+    <div class="slide-header">
+        <h2>Визначення та небезпека</h2>
+    </div>
+    <div class="content">
+        <p style="font-size: 22px;"><b>Електротравма</b> — це місцеві та загальні пошкодження, що виникають в результаті впливу електричного струму великої сили або розряду блискавки.</p>
+        <div class="warning-box">
+            Судоми м'язів часто унеможливлюють самостійне від'єднання потерпілого від провідника. Будь-яке зволікання призводить до загибелі людини.
+        </div>
+        <ul class="academic-list">
+            <li>Дія струму порушує роботу серцево-судинної системи.</li>
+            <li>Викликає термічні опіки в місцях контакту ("мітки струму").</li>
+            <li>Призводить до зупинки дихання та втрати свідомості.</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Слайд 3: Звільнення потерпілого (до 1000 В) -->
+<div class="slide">
+    <div class="slide-header">
+        <h2>Звільнення від дії струму (до 1000 В)</h2>
+    </div>
+    <div class="content">
+        <div class="two-col">
+            <div class="col-left">
+                <ul class="academic-list">
+                    <li><b>Відключення напруги:</b> Найперша дія — вимкнути рубильник або вимикач.</li>
+                    <li><b>Використання ізоляції:</b> Використовувати суху палицю, дошку, одяг, шапку або діелектричні рукавиці.</li>
+                    <li><b>Перерізання проводів:</b> Інструментом з ізольованими ручками або сокирою з сухим дерев’яним топорищем.</li>
+                </ul>
+            </div>
+            <div class="col-right">
+		<img src="https://naurok.com.ua/uploads/files/903311/197525/213546_images/37.jpg">
+            </div>
+        </div>
+    </div>
+    </div>
+
+<!-- Слайд 4: Правила безпеки рятувальника -->
+<div class="slide">
+    <div class="slide-header">
+        <h2>Заходи власної безпеки</h2>
+    </div>
+    <div class="content">
+        <ul class="academic-list">
+            <li><b>При відтягуванні за одяг:</b> Уникати дотику до металевих предметів та відкритих частин тіла потерпілого.</li>
+            <li><b>Захист ніг:</b> Не можна торкатися взуття потерпілого (може бути сирим).</li>
+            <li><b>Самоізоляція:</b> Слід стати на гумовий килимок або суху дошку.</li>
+            <li><b>Захист рук:</b> Обмотати руки шарфом або натягнути рукав піджака, якщо немає спеціальних рукавиць.</li>
+        </ul>
+        <div class="warning-box" style="background: #e1f5fe; border-left-color: #03a9f4;">
+            Рятувальник не повинен стати другою жертвою електричного ланцюга.
+        </div>
+    </div>
+    </div>
+
+<!-- Слайд 5: Три стани потерпілого -->
+<div class="slide">
+    <div class="slide-header">
+        <h2>Класифікація станів потерпілого</h2>
+    </div>
+    <div class="content">
+        <div class="status-grid">
+            <div class="status-card">
+                <h4>I Стан</h4>
+                <p><b>При свідомості.</b></p>
+                <p>Забезпечити спокій, спостереження 2-3 години, обов'язковий виклик лікаря.</p>
+            </div>
+            <div class="status-card" style="background: #fff8e1;">
+                <h4>II Стан</h4>
+                <p><b>Непритомний, дихає.</b></p>
+                <p>Покласти горизонтально, розстебнути тісний одяг, дати нашатирний спирт.</p>
+            </div>
+            <div class="status-card" style="background: #ffebee;">
+                <h4>III Стан</h4>
+                <p><b>Не дихає / уривчасто.</b></p>
+                <p>Негайно почати штучне дихання та непрямий масаж серця.</p>
+            </div>
+        </div>
+    </div>
+   </div>
+
+<!-- Слайд 6: Порядок надання домедичної допомоги -->
+<div class="slide">
+    <div class="slide-header">
+        <h2>Послідовність дій (Домедична допомога)</h2>
+    </div>
+    <div class="content" style="font-size: 18px;">
+        <ol class="academic-list" style="columns: 2;">
+            <li>Переконатися у відсутності небезпеки для себе.</li>
+            <li>Припинити дію струму на потерпілого.</li>
+            <li>Провести огляд (свідомість, дихання).</li>
+            <li>Викликати бригаду ЕМД (103).</li>
+            <li>Почати СЛР (якщо дихання відсутнє).</li>
+            <li>Надати стабільного положення (якщо без свідомості, але дихає).</li>
+            <li>Накласти чисті пов’язки на опіки.</li>
+            <li>Постійний нагляд до приїзду лікарів.</li>
+        </ol>
+    </div>
+
+</div>
+
+<!-- Слайд 7: Важливе зауваження про наслідки -->
+<div class="slide">
+    <div class="slide-header">
+        <h2>Віддалені наслідки</h2>
+    </div>
+    <div class="content">
+        <div class="two-col">
+            <div class="col-left">
+                <p style="font-size: 22px; line-height: 1.6;">Навіть якщо потерпілий прийшов до тями:</p>
+                <ul class="academic-list">
+                    <li style="font-weight: bold;">Заборонено відпускати додому або до роботи!</li>
+                    <li>Наслідки дії струму можуть проявитися через кілька годин.</li>
+                    <li>Можлива раптова зупинка серця або спазм судин.</li>
+                    <li>Обов’язкова госпіталізація для клінічного спостереження.</li>
+                </ul>
+            </div>
+            <div class="col-right">
+                <i class="fa-solid fa-hospital-user" style="font-size: 150px; color: #eee; display: block; text-align: center; margin-top: 20px;"></i>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
